@@ -55,48 +55,53 @@ def parse_dual_gpu_usage(output, csvfile)
   end
 end
 
-File.open('/proc/stat', 'r') do |stat|
-  stat.seek(0, IO::SEEK_SET)
-  stat_output = stat.gets
-
-  cpu_times = stat_output.scan(/cpu\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/)[0]
-  cpu_total_old = cpu_times.inject{|sum, x| sum.to_i + x.to_i}
-  cpu_idle_old = cpu_times[3].to_i
-
-  loop do
+begin
+  File.open('/proc/stat', 'r') do |stat|
     stat.seek(0, IO::SEEK_SET)
     stat_output = stat.gets
-    nvidia_output = `nvidia-smi -q --display=UTILIZATION`
 
     cpu_times = stat_output.scan(/cpu\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/)[0]
-    cpu_total_new = cpu_times.inject{|sum, x| sum.to_i + x.to_i}
-    cpu_idle_new = cpu_times[3].to_i
+    cpu_total_old = cpu_times.inject{|sum, x| sum.to_i + x.to_i}
+    cpu_idle_old = cpu_times[3].to_i
 
-    cpu_total_delta = (cpu_total_new - cpu_total_old).to_f
-    cpu_idle_delta = (cpu_idle_new - cpu_idle_old).to_f
-    unless cpu_total_delta == 0
-      cpu_usage = 100 - ((cpu_idle_new - cpu_idle_old).to_f / (cpu_total_new - cpu_total_old).to_f * 100)
-      puts "CPU% - #{cpu_usage}"
+    loop do
+      stat.seek(0, IO::SEEK_SET)
+      stat_output = stat.gets
+      nvidia_output = `nvidia-smi -q --display=UTILIZATION`
 
-      if !csvfile.nil?
-        csvfile.write("#{cpu_usage},")
+      cpu_times = stat_output.scan(/cpu\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/)[0]
+      cpu_total_new = cpu_times.inject{|sum, x| sum.to_i + x.to_i}
+      cpu_idle_new = cpu_times[3].to_i
+
+      cpu_total_delta = (cpu_total_new - cpu_total_old).to_f
+      cpu_idle_delta = (cpu_idle_new - cpu_idle_old).to_f
+      unless cpu_total_delta == 0
+        cpu_usage = 100 - ((cpu_idle_new - cpu_idle_old).to_f / (cpu_total_new - cpu_total_old).to_f * 100)
+        puts "CPU% - #{cpu_usage}"
+
+        if !csvfile.nil?
+          csvfile.write("#{cpu_usage},")
+        end
+
+        cpu_total_old = cpu_total_new
+        cpu_idle_old = cpu_idle_new
+
+        if dualgpu
+          parse_dual_gpu_usage(nvidia_output, csvfile)
+        else
+          parse_single_gpu_usage(nvidia_output, csvfile)
+        end
+
+        puts "--"
+        sleep(1)
       end
-
-      cpu_total_old = cpu_total_new
-      cpu_idle_old = cpu_idle_new
-
-      if dualgpu
-        parse_dual_gpu_usage(nvidia_output, csvfile)
-      else
-        parse_single_gpu_usage(nvidia_output, csvfile)
-      end
-
-      puts "--"
-      sleep(1)
     end
-  end
-end # File.open('/proc/stat', 'r') do |stat|
+  end # File.open('/proc/stat', 'r') do |stat|
 
-if !csvfile.nil?
-  csvfile.close
+  if !csvfile.nil?
+    csvfile.close
+  end
+rescue SystemExit, Interrupt
+  puts "\n ### EXITING ###"
+  `./copycsv.sh`
 end
