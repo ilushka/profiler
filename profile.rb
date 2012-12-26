@@ -1,6 +1,8 @@
 #! /usr/bin/ruby
 
 require 'optparse'
+require 'highline/import'
+require_relative 'report-creator'
 
 csvfile = nil
 dualgpu = false
@@ -104,4 +106,10 @@ begin
 rescue SystemExit, Interrupt
   puts "\n ### EXITING ###"
   `./copycsv.sh`
+
+  username = ask("Enter Username:") {|q| q.echo = true}
+  password = ask("Enter Password:") {|q| q.echo = false}
+
+  rc = ReportCreator.new
+  rc.create_report(username, password)
 end
