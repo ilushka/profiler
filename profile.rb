@@ -104,12 +104,15 @@ begin
     csvfile.close
   end
 rescue SystemExit, Interrupt
-  puts "\n ### EXITING ###"
-  `./copycsv.sh`
+  if !csvfile.nil?
+    puts "\n########## Exiting, Creating Report ##########\n\n"
+    csvfile.close
+    `./copycsv.sh`
 
-  username = ask("Enter Username:") {|q| q.echo = true}
-  password = ask("Enter Password:") {|q| q.echo = false}
+    username = ask("Enter Username:") {|q| q.echo = true}
+    password = ask("\nEnter Password:") {|q| q.echo = false}
 
-  rc = ReportCreator.new
-  rc.create_report(username, password)
+    rc = ReportCreator.new
+    rc.create_report(username, password)
+  end
 end
