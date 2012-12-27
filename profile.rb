@@ -4,34 +4,9 @@ require 'optparse'
 require 'highline/import'
 require_relative 'report-creator'
 
+# Defaults:
 csvfile = nil
 dualgpu = false
-
-opt_parse = OptionParser.new do |opt_parse|
-  opt_parse.banner = "Usage: profile.rb [options]"
-  opt_parse.separator ""
-  opt_parse.separator "Options:"
-
-  opt_parse.on("--dualgpu", "Collect usage from two GPUs.") do |arg|
-    dualgpu = true
-  end
-
-  opt_parse.on("--csvfile FILENAME", "Save CPU, GPU, GPU memory usage in CSV format to FILENAME.") do |csvfilename|
-    csvfile = File.open(csvfilename, 'w')
-    if dualgpu
-      csvfile.write("CPU%,GPU0%,GPU0 Mem%,GPU1%,GPU1 Mem%,\n")
-    else
-      csvfile.write("CPU%,GPU%,GPU Mem%,\n")
-    end
-  end
-
-  opt_parse.on_tail("--help", "Show this message.") do
-    puts opt_parse
-    exit
-  end
-end # opt_parse = OptionParse new do |opt_parse|
-
-opt_parse.parse!(ARGV)
 
 def parse_single_gpu_usage(output, csvfile)
   output.scan(/.*Gpu\s+\:\s(\d+)\s\%.*Memory\s+\:\s(\d+)\s\%.*/m) do |gpu, mem|
@@ -57,6 +32,46 @@ def parse_dual_gpu_usage(output, csvfile)
   end
 end
 
+def get_google_credentials()
+  username = ask("Enter Username:") {|q| q.echo = true}
+  password = ask("\nEnter Password:") {|q| q.echo = false}
+  {:username => username, :password => password}
+end
+
+opt_parse = OptionParser.new do |opt_parse|
+  opt_parse.banner = "Usage: profile.rb [options]"
+  opt_parse.separator ""
+  opt_parse.separator "Options:"
+
+  opt_parse.on("--dualgpu", "Collect usage from two GPUs.") do |arg|
+    dualgpu = true
+  end
+
+  opt_parse.on("--csvfile FILENAME", "Save CPU, GPU, GPU memory usage in CSV format to FILENAME.") do |csvfilename|
+    csvfile = File.open(csvfilename, 'w')
+    if dualgpu
+      csvfile.write("CPU%,GPU0%,GPU0 Mem%,GPU1%,GPU1 Mem%,\n")
+    else
+      csvfile.write("CPU%,GPU%,GPU Mem%,\n")
+    end
+  end
+
+  opt_parse.on("--create-report", "Create report in Google Docs, don't collect any data.") do |arg|
+    creds = get_google_credentials()
+    rc = ReportCreator.new
+    rc.create_report(creds[:username], creds[:password])
+    exit
+  end
+
+  opt_parse.on_tail("--help", "Show this message.") do
+    puts opt_parse
+    exit
+  end
+end # opt_parse = OptionParse new do |opt_parse|
+
+opt_parse.parse!(ARGV)
+
+# Start the usage stats collection loop:
 begin
   File.open('/proc/stat', 'r') do |stat|
     stat.seek(0, IO::SEEK_SET)
@@ -109,10 +124,8 @@ rescue SystemExit, Interrupt
     csvfile.close
     `./copycsv.sh`
 
-    username = ask("Enter Username:") {|q| q.echo = true}
-    password = ask("\nEnter Password:") {|q| q.echo = false}
-
+    creds = get_google_credentials()
     rc = ReportCreator.new
-    rc.create_report(username, password)
+    rc.create_report(creds[:username], creds[:password])
   end
 end
