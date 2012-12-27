@@ -54,13 +54,12 @@ class ReportCreator
       worksheet[row_idx, 1] = ws_name
       row_idx += 1
 
-      if diff_count > 0 
-        while diff_count > 0
-          worksheet[row_idx, 1] = 0
-          row_idx += 1
-          diff_count -= 1
-        end 
-      end
+      # Pad the worksheet's data with 0s
+      while diff_count > 0
+        worksheet[row_idx, 1] = 0
+        row_idx += 1
+        diff_count -= 1
+      end 
 
       File.open(fc[0], 'r') do |f|
         while line = f.gets
