@@ -84,7 +84,7 @@ class ReportCreator
       worksheet = spreadsheet.add_worksheet(File.basename(file))
       worksheet[row_idx, 1] = "CPU%"
       worksheet[row_idx, 2] = "GPU%"
-      worksheet[row_idx, 3] = "MEM%"
+      worksheet[row_idx, 3] = "GPU MEM%"
       row_idx += 1
 
       while line = file.gets
