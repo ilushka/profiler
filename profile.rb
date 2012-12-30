@@ -13,9 +13,7 @@ def parse_single_gpu_usage(output, csvfile)
     puts "GPU% - #{gpu}"
     puts "GPU MEM% - #{mem}"
 
-    if !csvfile.nil?
-      csvfile.write("#{gpu},#{mem},\n")
-    end
+    csvfile.write("#{gpu},#{mem},") if !csvfile.nil?
   end
 end
 
@@ -26,10 +24,24 @@ def parse_dual_gpu_usage(output, csvfile)
     puts "GPU1% - #{gpu1}"
     puts "GPU1 MEM% - #{mem1}"
 
-    if !csvfile.nil?
-      csvfile.write("#{gpu0},#{mem0},#{gpu1},#{mem1},\n")
-    end
+    csvfile.write("#{gpu0},#{mem0},#{gpu1},#{mem1},") if !csvfile.nil?
   end
+end
+
+def parse_mem_usage(output, csvfile)
+  usage = output.scan(/(\d+)/)
+  used = (usage[6].first.to_f / usage[0].first.to_f) * 100
+
+  puts "SYS MEM% - #{used}"
+  csvfile.write("#{used},") if !csvfile.nil?
+end
+
+def parse_mem_usage(output, csvfile)
+  usage = output.scan(/(\d+)/)
+  used = (usage[6].first.to_f / usage[0].first.to_f) * 100
+
+  puts "SYS MEM% - #{used}"
+  csvfile.write("#{used},") if !csvfile.nil?
 end
 
 def get_google_credentials()
@@ -84,40 +96,37 @@ begin
     loop do
       stat.seek(0, IO::SEEK_SET)
       stat_output = stat.gets
-      nvidia_output = `nvidia-smi -q --display=UTILIZATION`
 
       cpu_times = stat_output.scan(/cpu\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/)[0]
       cpu_total_new = cpu_times.inject{|sum, x| sum.to_i + x.to_i}
       cpu_idle_new = cpu_times[3].to_i
-
       cpu_total_delta = (cpu_total_new - cpu_total_old).to_f
       cpu_idle_delta = (cpu_idle_new - cpu_idle_old).to_f
-      unless cpu_total_delta == 0
+
+      unless cpu_total_delta == 0 # can be the case with the first entry
         cpu_usage = 100 - ((cpu_idle_new - cpu_idle_old).to_f / (cpu_total_new - cpu_total_old).to_f * 100)
-        puts "CPU% - #{cpu_usage}"
-
-        if !csvfile.nil?
-          csvfile.write("#{cpu_usage},")
-        end
-
         cpu_total_old = cpu_total_new
         cpu_idle_old = cpu_idle_new
 
+        puts "CPU% - #{cpu_usage}"
+        csvfile.write("#{cpu_usage},") if !csvfile.nil?
+
+        parse_mem_usage(`free`, csvfile)
+
         if dualgpu
-          parse_dual_gpu_usage(nvidia_output, csvfile)
+          parse_dual_gpu_usage(`nvidia-smi -q --display=UTILIZATION`, csvfile)
         else
-          parse_single_gpu_usage(nvidia_output, csvfile)
+          parse_single_gpu_usage(`nvidia-smi -q --display=UTILIZATION`, csvfile)
         end
 
+        csvfile.write("\n") if !csvfile.nil?
         puts "--"
         sleep(1)
       end
     end
   end # File.open('/proc/stat', 'r') do |stat|
 
-  if !csvfile.nil?
-    csvfile.close
-  end
+  csvfile.close if !csvfile.nil?
 rescue SystemExit, Interrupt
   if !csvfile.nil?
     puts "\n########## Exiting, Creating Report ##########\n\n"

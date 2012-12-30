@@ -83,8 +83,9 @@ class ReportCreator
 
       worksheet = spreadsheet.add_worksheet(File.basename(file))
       worksheet[row_idx, 1] = "CPU%"
-      worksheet[row_idx, 2] = "GPU%"
-      worksheet[row_idx, 3] = "GPU MEM%"
+      worksheet[row_idx, 2] = "SYS MEM%"
+      worksheet[row_idx, 3] = "GPU%"
+      worksheet[row_idx, 4] = "GPU MEM%"
       row_idx += 1
 
       while line = file.gets
@@ -94,6 +95,7 @@ class ReportCreator
           worksheet[row_idx, 1] = Float(data[0])
           worksheet[row_idx, 2] = Float(data[1])
           worksheet[row_idx, 3] = Float(data[2])
+          worksheet[row_idx, 4] = Float(data[3])
         rescue => e
           next
         else
