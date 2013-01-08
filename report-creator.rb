@@ -15,7 +15,6 @@ class ReportCreator
       counts[filename] = get_line_count(filename)
     end
 
-    #counts.sort_by {|key, val| val}.last[1]
     counts
   end
 
@@ -40,38 +39,41 @@ class ReportCreator
 
   def add_fps_files_to_spreadsheet(spreadsheet, path = './remote*_fps.csv')
     csv_counts = get_csv_counts(path).sort_by {|key, val| val}.reverse!
-    highest_count = csv_counts.first[1]
-    ws_num = 1
 
-    csv_counts.each do |fc|
-      diff_count = highest_count - fc[1]
-      row_idx = 1
-      ws_name = "Session #{ws_num}"
+    unless csv_counts.nil? or (csv_counts.length == 0)
+      highest_count = csv_counts.first[1]
+      ws_num = 1
 
-      print "Adding worksheet: #{ws_name}"
+      csv_counts.each do |fc|
+        diff_count = highest_count - fc[1]
+        row_idx = 1
+        ws_name = "Session #{ws_num}"
 
-      worksheet = spreadsheet.add_worksheet(ws_name)
-      worksheet[row_idx, 1] = ws_name
-      row_idx += 1
+        print "Adding worksheet: #{ws_name}"
 
-      # Pad the worksheet's data with 0s
-      while diff_count > 0
-        worksheet[row_idx, 1] = 0
+        worksheet = spreadsheet.add_worksheet(ws_name)
+        worksheet[row_idx, 1] = ws_name
         row_idx += 1
-        diff_count -= 1
-      end 
 
-      File.open(fc[0], 'r') do |f|
-        while line = f.gets
-          worksheet[row_idx, 1] = Float(line.scan(/[\d\.]+/).first)
+        # Pad the worksheet's data with 0s
+        while diff_count > 0
+          worksheet[row_idx, 1] = 0
           row_idx += 1
+          diff_count -= 1
+        end 
+
+        File.open(fc[0], 'r') do |f|
+          while line = f.gets
+            worksheet[row_idx, 1] = Float(line.scan(/[\d\.]+/).first)
+            row_idx += 1
+          end
         end
+
+        ws_num += 1
+        worksheet.save()
+
+        puts " - Done."
       end
-
-      ws_num += 1
-      worksheet.save()
-
-      puts " - Done."
     end
   end
 

@@ -12,9 +12,13 @@ def parse_single_gpu_usage(output, csvfile)
   output.scan(/.*Gpu\s+\:\s(\d+)\s\%.*Memory\s+\:\s(\d+)\s\%.*/m) do |gpu, mem|
     puts "GPU% - #{gpu}"
     puts "GPU MEM% - #{mem}"
-
     csvfile.write("#{gpu},#{mem},") if !csvfile.nil?
+    return
   end
+
+  puts "GPU% - 0.0"
+  puts "GPU MEM% - 0.0"
+  csvfile.write("0.0,0.0,") if !csvfile.nil?
 end
 
 def parse_dual_gpu_usage(output, csvfile)
@@ -23,9 +27,15 @@ def parse_dual_gpu_usage(output, csvfile)
     puts "GPU0 MEM% - #{mem0}"
     puts "GPU1% - #{gpu1}"
     puts "GPU1 MEM% - #{mem1}"
-
     csvfile.write("#{gpu0},#{mem0},#{gpu1},#{mem1},") if !csvfile.nil?
+    return
   end
+
+  puts "GPU0% - 0.0"
+  puts "GPU0 MEM% - 0.0"
+  puts "GPU1% - 0.0"
+  puts "GPU1 MEM% - 0.0"
+  csvfile.write("0.0,0.0,0.0,0.0,") if !csvfile.nil?
 end
 
 def parse_mem_usage(output, csvfile)
@@ -61,11 +71,12 @@ opt_parse = OptionParser.new do |opt_parse|
 
   opt_parse.on("--csvfile FILENAME", "Save CPU, GPU, GPU memory usage in CSV format to FILENAME.") do |csvfilename|
     csvfile = File.open(csvfilename, 'w')
-    if dualgpu
-      csvfile.write("CPU%,GPU0%,GPU0 Mem%,GPU1%,GPU1 Mem%,\n")
-    else
-      csvfile.write("CPU%,GPU%,GPU Mem%,\n")
-    end
+#
+#    if dualgpu
+#      csvfile.write("CPU%,GPU0%,GPU0 Mem%,GPU1%,GPU1 Mem%,\n")
+#    else
+#      csvfile.write("CPU%,GPU%,GPU Mem%,\n")
+#    end
   end
 
   opt_parse.on("--create-report", "Create report in Google Docs, don't collect any data.") do |arg|
