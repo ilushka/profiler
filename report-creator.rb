@@ -2,7 +2,7 @@ require 'rubygems'
 require 'google_drive'
 
 class ReportCreator
-  REPORT_TEMPLATE_ADDR = 'https://docs.google.com/spreadsheet/ccc?key=0AiceE3unQ7ZddHBOaDVEV1NfOXJTaW9raHM2Z0NxUnc'
+  REPORT_TEMPLATE_ADDR = 'https://docs.google.com/spreadsheet/ccc?key=0AiceE3unQ7ZddElQUC16R3ltczFxRVpIaHhDNE5yWmc'
 
   def get_line_count(filename)
     Integer(`wc -l #{filename}`.split[0])
